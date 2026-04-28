@@ -3,275 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Demo Web Open APIs</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
+    <title>Mini App Auth Code</title>
     <style>
-      :root {
-        --bg-1: #041427;
-        --bg-2: #0b2f56;
-        --card: rgba(9, 27, 46, 0.74);
-        --card-border: rgba(125, 211, 252, 0.25);
-        --text: #eff6ff;
-        --muted: #bfdbfe;
-        --accent: #34d399;
-        --accent-2: #22d3ee;
-        --danger: #fb7185;
-        --ok: #4ade80;
-        --field: rgba(2, 15, 28, 0.72);
-        --field-border: rgba(125, 211, 252, 0.34);
-        --mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
-      }
-
       * {
         box-sizing: border-box;
       }
 
       body {
         margin: 0;
+        padding: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f5f5;
         min-height: 100vh;
-        font-family: "Space Grotesk", sans-serif;
-        color: var(--text);
-        background:
-          radial-gradient(circle at 8% 10%, rgba(52, 211, 153, 0.24), transparent 32%),
-          radial-gradient(circle at 82% 86%, rgba(34, 211, 238, 0.23), transparent 36%),
-          linear-gradient(145deg, var(--bg-1), var(--bg-2));
-        display: grid;
-        place-items: center;
-        padding: 24px;
       }
 
-      .panel {
-        width: min(860px, 100%);
-        border: 1px solid var(--card-border);
-        background: var(--card);
-        backdrop-filter: blur(14px);
-        border-radius: 24px;
-        padding: 28px 28px 24px;
-        box-shadow: 0 20px 60px rgba(2, 6, 23, 0.45);
-        animation: float-in 420ms ease-out;
-      }
-
-      .eyebrow {
-        margin: 0 0 8px;
-        font-size: 0.8rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--accent-2);
-        font-weight: 700;
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
 
       h1 {
-        margin: 0;
-        font-size: clamp(1.6rem, 4vw, 2.2rem);
-      }
-
-      p {
-        margin: 10px 0 0;
-        color: var(--muted);
-        line-height: 1.45;
-      }
-
-      .actions {
-        margin-top: 18px;
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .config-grid {
-        margin-top: 18px;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .field {
-        display: grid;
-        gap: 8px;
-      }
-
-      .field label {
-        font-size: 0.82rem;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: var(--muted);
-        font-weight: 700;
-      }
-
-      .field input {
-        width: 100%;
-        border-radius: 12px;
-        border: 1px solid var(--field-border);
-        background: var(--field);
-        color: var(--text);
-        padding: 12px;
-        font-size: 0.95rem;
-        outline: none;
-        transition: border-color 160ms ease, box-shadow 160ms ease;
-      }
-
-      .field input::placeholder {
-        color: #93c5fd;
-      }
-
-      .field input:focus {
-        border-color: var(--accent-2);
-        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
-      }
-
-      button {
-        border: 1px solid transparent;
-        border-radius: 12px;
-        padding: 12px 18px;
-        font: inherit;
-        font-weight: 700;
-        cursor: pointer;
-        transition: transform 180ms ease, filter 180ms ease;
-      }
-
-      .btn-primary {
-        background: linear-gradient(90deg, var(--accent), #10b981);
-        color: #022c22;
-      }
-
-      .btn-secondary {
-        background: rgba(15, 23, 42, 0.45);
-        border-color: var(--field-border);
-        color: var(--text);
-      }
-
-      button:hover {
-        transform: translateY(-2px);
-        filter: brightness(1.05);
+        margin: 0 0 20px;
+        font-size: 1.5rem;
       }
 
       .result {
-        margin-top: 22px;
-        border-radius: 16px;
-        border: 1px solid var(--field-border);
-        background: rgba(2, 15, 28, 0.74);
-        padding: 16px;
-      }
-
-      .result strong {
-        display: block;
-        margin-bottom: 10px;
-        letter-spacing: 0.03em;
+        margin-top: 20px;
+        padding: 15px;
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        word-break: break-all;
+        min-height: 80px;
       }
 
       .status {
         margin-top: 10px;
-        font-size: 0.95rem;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 0.9rem;
       }
 
-      .status.ok {
-        color: var(--ok);
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
       }
 
       .status.error {
-        color: var(--danger);
-      }
-
-      #auth-output {
-        display: block;
-        margin: 0;
-        max-height: 260px;
-        overflow: auto;
-        white-space: pre-wrap;
-        word-break: break-word;
-        color: #dbeafe;
-        font-family: var(--mono);
-        font-size: 0.86rem;
-        line-height: 1.45;
-        padding: 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(125, 211, 252, 0.2);
-        background: rgba(6, 22, 39, 0.95);
-      }
-
-      @media (max-width: 760px) {
-        body {
-          padding: 14px;
-        }
-
-        .panel {
-          padding: 18px;
-          border-radius: 18px;
-        }
-
-        .config-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .actions button {
-          width: 100%;
-        }
-      }
-
-      @keyframes float-in {
-        from {
-          opacity: 0;
-          transform: translateY(10px) scale(0.98);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
       }
     </style>
   </head>
   <body>
-    <main class="panel">
-      <p class="eyebrow">OpenAPI Playground</p>
-      <h1>Demo de Auth Code en Web</h1>
-      <p>
-        Este ejemplo usa el SDK de Mini App para pedir el auth code con fallback de scopes.
-      </p>
+    <div class="container">
+      <h1>Mini App - Auth Code</h1>
+      <div id="result" class="result">Esperando...</div>
+      <div id="status" class="status"></div>
+    </div>
 
-      <div class="actions">
-        <button id="btn-auth" class="btn-primary" type="button">Obtener authCode</button>
-        <button id="btn-user-info" class="btn-primary" type="button">Consultar usuario (OpenAPI)</button>
-        <button id="btn-clear" class="btn-secondary" type="button">Limpiar</button>
-      </div>
-
-      <div class="config-grid">
-        <div class="field">
-          <label for="url-apply-token">URL Apply Token</label>
-          <input
-            id="url-apply-token"
-            type="text"
-            placeholder="https://api.example.com/miniprogram/api/v2/authorization/"
-          />
-        </div>
-        <div class="field">
-          <label for="url-users">URL Users</label>
-          <input
-            id="url-users"
-            type="text"
-            placeholder="https://api.example.com/miniprogram/api/v2/users/"
-          />
-        </div>
-      </div>
-
-      <section class="result" aria-live="polite">
-        <strong>Resultado</strong>
-        <pre id="auth-output">Sin ejecutar</pre>
-        <div id="status" class="status"></div>
-      </section>
-    </main>
-
-    <script
-      id="sdk-webview"
-      type="text/javascript"
-      src="https://appx/web-view.min.js"
-      onload="window.__sdkLoaded = true"
-      onerror="window.__sdkLoadError = 'No se pudo cargar el SDK web-view.min.js desde https://appx/web-view.min.js'"
-    ></script>
-    <script type="module" src="./main.js"></script>
+    <script type="text/javascript" src="https://appx/web-view.min.js"></script>
+    <script src="./main.js"></script>
   </body>
 </html>
