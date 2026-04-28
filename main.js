@@ -1,6 +1,6 @@
 import { getOpenApiUrls, ENV } from "./utilidades/config.js";
 import { getInquiryUserInfo } from "./utilidades/openApis.js";
-import { getAxiosInfo, isAxiosAvailable } from "./utilidades/axiosTransport.js";
+import { getFetchInfo, isFetchAvailable } from "./utilidades/fetchTransport.js";
 
 const resultEl = document.getElementById("result");
 const statusEl = document.getElementById("status");
@@ -198,18 +198,18 @@ async function runInquiryUserInfo() {
 runButton?.addEventListener("click", runInquiryUserInfo);
 
 globalThis.addEventListener("load", () => {
-  const axiosAvailable = isAxiosAvailable();
-  const axiosInfo = getAxiosInfo();
+  const fetchAvailable = isFetchAvailable();
+  const fetchInfo = getFetchInfo();
 
   LogSystem.addLog(
     `✅ Sistema listo en ambiente: ${ENV}`,
     "success",
     {
-      axiosDisponible: axiosAvailable,
-      axiosVersion: axiosInfo.version,
-      mensaje: axiosAvailable
-        ? "✅ Usando Axios para consumir APIs"
-        : "⚠️ Axios no disponible, usa fallback",
+      fetchDisponible: fetchAvailable,
+      fetchVersion: fetchInfo.version,
+      mensaje: fetchAvailable
+        ? "✅ Usando Fetch API para consumir APIs"
+        : "⚠️ Fetch API no disponible",
     }
   );
 

@@ -1,6 +1,6 @@
 import { getPrivateKey } from "./config.js";
 import { signGenerator } from "./generateSignature.js";
-import { requestWithAxios } from "./axiosTransport.js";
+import { requestWithFetch } from "./fetchTransport.js";
 
 function escapeShellValue(value) {
   return String(value).replaceAll('"', String.raw`\"`);
@@ -62,15 +62,15 @@ async function requestHttpAsync(requestConfig, debugSteps) {
     Object.assign(headers, requestConfig.headers);
   }
 
-  console.log("🔹 [requestHttpAsync] Iniciando transporte con Axios...");
+  console.log("🔹 [requestHttpAsync] Iniciando transporte con Fetch API...");
   console.log("   URL:", requestConfig.url);
   console.log("   METHOD:", requestConfig.method || "POST");
 
   try {
     const startTime = Date.now();
 
-    // Usar Axios como transporte principal
-    const response = await requestWithAxios(
+    // Usar Fetch API como transporte principal
+    const response = await requestWithFetch(
       {
         url: requestConfig.url,
         method: requestConfig.method || "POST",
