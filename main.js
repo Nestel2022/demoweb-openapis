@@ -38,6 +38,28 @@ function formatTraceResponse(response) {
   return output;
 }
 
+function formatTraceError(error) {
+  const message = error?.message || String(error);
+
+  if (!Array.isArray(error?.debugSteps) || error.debugSteps.length === 0) {
+    return `ERROR:\n${message}`;
+  }
+
+  let output = `ERROR:\n${message}\n\n=== REQUESTS BEFORE FAILURE ===\n\n`;
+
+  for (let index = 0; index < error.debugSteps.length; index += 1) {
+    const step = error.debugSteps[index];
+    output += `-- Request ${index + 1} --\n`;
+    output += `URL: ${step.url}\n`;
+    output += `METHOD: ${step.method}\n`;
+    output += `HEADERS:\n${JSON.stringify(step.headers, null, 2)}\n`;
+    output += `BODY:\n${JSON.stringify(step.body, null, 2)}\n`;
+    output += `CURL:\n${step.curl}\n\n`;
+  }
+
+  return output;
+}
+
 async function runInquiryUserInfo() {
   try {
     const { urlApplyToken, urlUsers } = getOpenApiUrls();
@@ -53,7 +75,7 @@ async function runInquiryUserInfo() {
   } catch (error) {
     const message = error?.message || String(error);
 
-    setResult(message);
+    setResult(formatTraceError(error));
     setStatus(message, "error");
     alert(message);
   }

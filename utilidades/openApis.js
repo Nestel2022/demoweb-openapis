@@ -20,6 +20,22 @@ function buildCurlCommand(requestConfig, headers) {
   ].join(" ");
 }
 
+function createHttpError(message, debugSteps, debugEntry, cause) {
+  const error = new Error(message);
+
+  if (cause) {
+    error.cause = cause;
+  }
+
+  error.debugSteps = Array.isArray(debugSteps) ? [...debugSteps] : [];
+
+  if (debugEntry) {
+    error.lastRequest = debugEntry;
+  }
+
+  return error;
+}
+
 function callMyAsync(method, params = {}) {
   return new Promise((resolve, reject) => {
     try {
@@ -57,27 +73,37 @@ async function requestHttpAsync(requestConfig, debugSteps) {
     debugSteps.push(debugEntry);
   }
 
-  const response = await fetch(requestConfig.url, {
-    method: requestConfig.method || "POST",
-    headers,
-    body: JSON.stringify(requestConfig.data || {}),
-  });
+  try {
+    const response = await fetch(requestConfig.url, {
+      method: requestConfig.method || "POST",
+      headers,
+      body: JSON.stringify(requestConfig.data || {}),
+    });
 
-  const contentType = response.headers.get("content-type") || "";
-  const data = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
 
-  if (!response.ok) {
-    throw new Error(
-      `HTTP ${response.status} ${response.statusText}: ${typeof data === "string" ? data : JSON.stringify(data)}`
-    );
+    if (!response.ok) {
+      throw createHttpError(
+        `HTTP ${response.status} ${response.statusText}: ${typeof data === "string" ? data : JSON.stringify(data)}`,
+        debugSteps,
+        debugEntry
+      );
+    }
+
+    return {
+      status: response.status,
+      data,
+    };
+  } catch (error) {
+    if (error?.debugSteps) {
+      throw error;
+    }
+
+    throw createHttpError(error?.message || String(error), debugSteps, debugEntry, error);
   }
-
-  return {
-    status: response.status,
-    data,
-  };
 }
 
 async function getTokens() {
@@ -217,38 +243,46 @@ async function getConfigInquiryUserInfo(url, debugSteps = []) {
 
 export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) {
   const debugSteps = [];
-  const tokens = await getTokens();
+  try {
+    const tokens = await getTokens();
 
-  headers["X-MC-DEVICE-ID"] = tokens.device_id || "";
-  headers["X-MC-USER-AGENT"] = tokens.user_agent || "";
+    headers["X-MC-DEVICE-ID"] = tokens.device_id || "";
+    headers["X-MC-USER-AGENT"] = tokens.user_agent || "";
 
-  const data = await getConfigInquiryUserInfo(urlApplyToken, debugSteps);
+    const data = await getConfigInquiryUserInfo(urlApplyToken, debugSteps);
 
-  const headersApply = {
-    "Client-Id": data.clientId,
-    "Request-Time": data.requestTimeGateway,
-    Signature: data.signature,
-    "Merchant-id": data.merchantId,
-    ...headers,
-  };
+    const headersApply = {
+      "Client-Id": data.clientId,
+      "Request-Time": data.requestTimeGateway,
+      Signature: data.signature,
+      "Merchant-id": data.merchantId,
+      ...headers,
+    };
 
-  const requestConfig = {
-    url: `${urlUsers}inquiryUserBasicInfo`,
-    method: "POST",
-    data: data.body,
-    headers: headersApply,
-  };
+    const requestConfig = {
+      url: `${urlUsers}inquiryUserBasicInfo`,
+      method: "POST",
+      data: data.body,
+      headers: headersApply,
+    };
 
-  const inquiryResponse = await requestHttpAsync(requestConfig, debugSteps);
+    const inquiryResponse = await requestHttpAsync(requestConfig, debugSteps);
 
-  return {
-    inquiryResponse,
-    accessTokenResponse: {
-      status: data.responseAccessToken.status,
-      data: data.responseAccessToken.data,
-    },
-    debugSteps,
-  };
+    return {
+      inquiryResponse,
+      accessTokenResponse: {
+        status: data.responseAccessToken.status,
+        data: data.responseAccessToken.data,
+      },
+      debugSteps,
+    };
+  } catch (error) {
+    if (!error?.debugSteps) {
+      error.debugSteps = [...debugSteps];
+    }
+
+    throw error;
+  }
 }
 
 export function getExtraData(headers) {
