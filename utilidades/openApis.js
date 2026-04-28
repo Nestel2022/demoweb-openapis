@@ -1,5 +1,6 @@
 import { getPrivateKey } from "./config.js";
 import { signGenerator } from "./generateSignature.js";
+import { requestHybrid, getTransportInfo } from "./httpTransport.js";
 
 function escapeShellValue(value) {
   return String(value).replaceAll('"', String.raw`\"`);
@@ -61,103 +62,44 @@ async function requestHttpAsync(requestConfig, debugSteps) {
     Object.assign(headers, requestConfig.headers);
   }
 
-  const debugEntry = {
-    url: requestConfig.url,
-    method: requestConfig.method || "POST",
-    headers,
-    body: requestConfig.data || {},
-    curl: buildCurlCommand(requestConfig, headers),
-  };
-
-  if (Array.isArray(debugSteps)) {
-    debugSteps.push(debugEntry);
-  }
-
-  console.log("🔹 [requestHttpAsync] Iniciando fetch...");
+  console.log("🔹 [requestHttpAsync] Iniciando transporte híbrido...");
   console.log("   URL:", requestConfig.url);
   console.log("   METHOD:", requestConfig.method || "POST");
-  console.log("   HEADERS:", headers);
-  console.log("   BODY:", requestConfig.data || {});
 
   try {
-    console.log("⏱️ [requestHttpAsync] Llamando fetch...");
     const startTime = Date.now();
-
-    const response = await fetch(requestConfig.url, {
-      method: requestConfig.method || "POST",
-      headers,
-      body: JSON.stringify(requestConfig.data || {}),
-    }).catch((err) => {
-      // Detectar tipo de error de red
-      const errorType = err?.name || "NetworkError";
-      let friendlyMessage = err?.message || String(err);
-
-      if (err?.message?.includes("Failed to fetch")) {
-        // Esto puede ser CORS, DNS, timeout, etc.
-        if (requestConfig.url.includes("https")) {
-          friendlyMessage =
-            "Error de conexión HTTPS. Posibles causas: CORS bloqueado, DNS no resuelto, certificado inválido, o no hay conectividad.";
-        } else {
-          friendlyMessage = "Error de conexión HTTP. Verifica la URL y conectividad.";
-        }
-      }
-
-      console.error(`❌ [requestHttpAsync] FETCH ERROR (${errorType}): ${err?.message}`);
-      console.error("   URL:", requestConfig.url);
-      console.error("   Error message:", err?.message);
-      console.error("   Full error:", err);
-
-      const error = new Error(friendlyMessage);
-      error.originalError = err;
-      error.networkError = true;
-      throw error;
-    });
+    
+    // Usar el transporte híbrido que intenta múltiples métodos
+    const response = await requestHybrid(
+      {
+        url: requestConfig.url,
+        method: requestConfig.method || "POST",
+        headers,
+        data: requestConfig.data || {},
+      },
+      debugSteps
+    );
 
     const elapsedTime = Date.now() - startTime;
-    console.log(`✅ [requestHttpAsync] fetch completó en ${elapsedTime}ms`);
-    console.log("   Status:", response.status, response.statusText);
-    console.log("   Response Headers:", {
-      contentType: response.headers.get("content-type"),
-    });
+    console.log(`✅ [requestHttpAsync] Transporte completó en ${elapsedTime}ms`);
+    console.log("   Transport usado:", response.debugEntry?.transport);
+    console.log("   Status:", response.status);
+    console.log("   Response Data:", response.data);
 
-    const contentType = response.headers.get("content-type") || "";
-    const data = contentType.includes("application/json")
-      ? await response.json()
-      : await response.text();
-
-    console.log("   Response Data:", data);
-
-    if (!response.ok) {
-      console.error("❌ [requestHttpAsync] HTTP Error:", response.status);
-      throw createHttpError(
-        `HTTP ${response.status} ${response.statusText}: ${typeof data === "string" ? data : JSON.stringify(data)}`,
-        debugSteps,
-        debugEntry
-      );
-    }
-
-    console.log("✅ [requestHttpAsync] Respuesta exitosa");
     return {
       status: response.status,
-      data,
+      data: response.data,
     };
   } catch (error) {
-    const errorType = error?.name || "Unknown";
     const errorMessage = error?.message || String(error);
-
-    console.error(`❌ [requestHttpAsync] ERROR (${errorType}): ${errorMessage}`);
+    console.error(`❌ [requestHttpAsync] ERROR: ${errorMessage}`);
     console.error("   Full error:", error);
-    console.error("   Stack:", error?.stack);
 
     if (error?.debugSteps) {
-      console.log("   (Error already has debugSteps, re-throwing)");
       throw error;
     }
 
-    const enhancedMessage = error?.networkError
-      ? `🌐 NETWORK ERROR: ${errorMessage}`
-      : `FETCH ERROR: ${errorMessage}. Check the request details below.`;
-    throw createHttpError(enhancedMessage, debugSteps, debugEntry, error);
+    throw createHttpError(errorMessage, debugSteps, null, error);
   }
 }
 

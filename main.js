@@ -1,5 +1,6 @@
 import { getOpenApiUrls, ENV } from "./utilidades/config.js";
 import { getInquiryUserInfo } from "./utilidades/openApis.js";
+import { getTransportInfo } from "./utilidades/httpTransport.js";
 
 const resultEl = document.getElementById("result");
 const statusEl = document.getElementById("status");
@@ -197,5 +198,18 @@ async function runInquiryUserInfo() {
 runButton?.addEventListener("click", runInquiryUserInfo);
 
 globalThis.addEventListener("load", () => {
+  const transportInfo = getTransportInfo();
+  
+  LogSystem.addLog(
+    `✅ Sistema listo en ambiente: ${ENV}`,
+    "success",
+    {
+      transportes: transportInfo.available,
+      myApiDisponible: transportInfo.myHttpRequest,
+      xmlHttpRequestDisponible: transportInfo.XMLHttpRequest,
+      fetchDisponible: transportInfo.fetch,
+    }
+  );
+  
   setStatus(`Listo para consumir OpenAPI en ${ENV}`, "info");
 });
