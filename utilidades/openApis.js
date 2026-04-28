@@ -82,11 +82,35 @@ async function requestHttpAsync(requestConfig, debugSteps) {
   try {
     console.log("⏱️ [requestHttpAsync] Llamando fetch...");
     const startTime = Date.now();
-    
+
     const response = await fetch(requestConfig.url, {
       method: requestConfig.method || "POST",
       headers,
       body: JSON.stringify(requestConfig.data || {}),
+    }).catch((err) => {
+      // Detectar tipo de error de red
+      const errorType = err?.name || "NetworkError";
+      let friendlyMessage = err?.message || String(err);
+
+      if (err?.message?.includes("Failed to fetch")) {
+        // Esto puede ser CORS, DNS, timeout, etc.
+        if (requestConfig.url.includes("https")) {
+          friendlyMessage =
+            "Error de conexión HTTPS. Posibles causas: CORS bloqueado, DNS no resuelto, certificado inválido, o no hay conectividad.";
+        } else {
+          friendlyMessage = "Error de conexión HTTP. Verifica la URL y conectividad.";
+        }
+      }
+
+      console.error(`❌ [requestHttpAsync] FETCH ERROR (${errorType}): ${err?.message}`);
+      console.error("   URL:", requestConfig.url);
+      console.error("   Error message:", err?.message);
+      console.error("   Full error:", err);
+
+      const error = new Error(friendlyMessage);
+      error.originalError = err;
+      error.networkError = true;
+      throw error;
     });
 
     const elapsedTime = Date.now() - startTime;
@@ -120,7 +144,7 @@ async function requestHttpAsync(requestConfig, debugSteps) {
   } catch (error) {
     const errorType = error?.name || "Unknown";
     const errorMessage = error?.message || String(error);
-    
+
     console.error(`❌ [requestHttpAsync] ERROR (${errorType}): ${errorMessage}`);
     console.error("   Full error:", error);
     console.error("   Stack:", error?.stack);
@@ -130,7 +154,9 @@ async function requestHttpAsync(requestConfig, debugSteps) {
       throw error;
     }
 
-    const enhancedMessage = `FETCH ERROR: ${errorMessage}. Check browser console for network details.`;
+    const enhancedMessage = error?.networkError
+      ? `🌐 NETWORK ERROR: ${errorMessage}`
+      : `FETCH ERROR: ${errorMessage}. Check the request details below.`;
     throw createHttpError(enhancedMessage, debugSteps, debugEntry, error);
   }
 }
@@ -220,7 +246,7 @@ async function getConfigAccessToken(data) {
 
 async function getAccessToken(url, dataService, debugSteps = []) {
   console.log("🔹 [getAccessToken] Iniciando getAccessToken...");
-  console.log("   URL base:", url);
+  console.log("   URL base proporcionada:", url);
   
   const data = await getConfigAccessToken(dataService);
   
@@ -232,8 +258,8 @@ async function getAccessToken(url, dataService, debugSteps = []) {
   };
 
   const fullUrl = `${url}applyToken`;
-  console.log("   URL completa:", fullUrl);
-  console.log("   Signature:", data.signature.substring(0, 50) + "...");
+  console.log("✅ [getAccessToken] URL COMPLETA PARA APPLYTOKEN:", fullUrl);
+  console.log("   Signature (primeros 50 chars):", data.signature.substring(0, 50) + "...");
 
   const requestConfig = {
     url: fullUrl,
@@ -243,9 +269,14 @@ async function getAccessToken(url, dataService, debugSteps = []) {
   };
 
   console.log("✅ [getAccessToken] Llamando requestHttpAsync...");
-  const response = await requestHttpAsync(requestConfig, debugSteps);
-
-  return response;
+  try {
+    const response = await requestHttpAsync(requestConfig, debugSteps);
+    console.log("✅ [getAccessToken] applyToken EXITOSO");
+    return response;
+  } catch (error) {
+    console.error("❌ [getAccessToken] applyToken FALLÓ:", error?.message);
+    throw error;
+  }
 }
 
 async function getConfigInquiryUserInfo(url, debugSteps = []) {
@@ -283,8 +314,8 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
   const debugSteps = [];
   
   console.log("🔹 [getInquiryUserInfo] ========== INICIANDO FLUJO COMPLETO ==========");
-  console.log("   urlUsers:", urlUsers);
-  console.log("   urlApplyToken:", urlApplyToken);
+  console.log("   urlUsers (base):", urlUsers);
+  console.log("   urlApplyToken (base):", urlApplyToken);
   
   try {
     console.log("🔹 [getInquiryUserInfo] Obteniendo tokens de dispositivo...");
@@ -293,10 +324,11 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
 
     headers["X-MC-DEVICE-ID"] = tokens.device_id || "";
     headers["X-MC-USER-AGENT"] = tokens.user_agent || "";
+    console.log("   Headers adicionales configurados:", headers);
 
     console.log("🔹 [getInquiryUserInfo] Configurando acceso a token...");
     const data = await getConfigInquiryUserInfo(urlApplyToken, debugSteps);
-    console.log("   Config obtenida, primer request realizado");
+    console.log("✅ [getInquiryUserInfo] Config obtenida, primer request realizado");
     console.log("   Access Token recibido:", data.responseAccessToken.data.accessToken?.substring(0, 50) + "...");
 
     const headersApply = {
@@ -309,7 +341,8 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
 
     const fullUrl = `${urlUsers}inquiryUserBasicInfo`;
     console.log("🔹 [getInquiryUserInfo] Realizando inquiry...");
-    console.log("   URL completa:", fullUrl);
+    console.log("   ✅ URL COMPLETA PARA INQUIRY:", fullUrl);
+    console.log("   ✅ Signature (primeros 50 chars):", data.signature.substring(0, 50) + "...");
 
     const requestConfig = {
       url: fullUrl,
@@ -332,7 +365,8 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
     };
   } catch (error) {
     console.error("❌ [getInquiryUserInfo] ERROR EN FLUJO:", error?.message || String(error));
-    console.error("   debugSteps hasta el error:", debugSteps);
+    console.error("   debugSteps hasta el error:", debugSteps.length, "requests registrados");
+    console.error("   Detalles del error:", error);
     
     if (!error?.debugSteps) {
       error.debugSteps = [...debugSteps];

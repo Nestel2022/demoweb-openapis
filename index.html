@@ -71,6 +71,69 @@
         color: #721c24;
         border: 1px solid #f5c6cb;
       }
+
+      .debug-panel {
+        margin-top: 20px;
+        border: 2px solid #0066cc;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .debug-header {
+        background: #0066cc;
+        color: white;
+        padding: 10px 15px;
+        font-weight: bold;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .debug-header button {
+        margin: 0;
+        padding: 5px 10px;
+        font-size: 0.85rem;
+        background: white;
+        color: #0066cc;
+      }
+
+      .debug-logs {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        font-family: "Courier New", monospace;
+        font-size: 0.8rem;
+        padding: 15px;
+        max-height: 400px;
+        overflow-y: auto;
+        border-top: 1px solid #0066cc;
+        line-height: 1.4;
+      }
+
+      .debug-logs .log-entry {
+        margin-bottom: 8px;
+        padding: 5px;
+        border-left: 3px solid #666;
+      }
+
+      .debug-logs .log-info {
+        border-left-color: #0066cc;
+        color: #4ec9b0;
+      }
+
+      .debug-logs .log-error {
+        border-left-color: #f48771;
+        color: #f48771;
+      }
+
+      .debug-logs .log-success {
+        border-left-color: #6a9955;
+        color: #6a9955;
+      }
+
+      .debug-logs .log-timestamp {
+        color: #858585;
+        font-size: 0.75rem;
+      }
     </style>
   </head>
   <body>
@@ -79,6 +142,18 @@
       <button id="run-open-api" type="button">Consumir inquiryUserBasicInfo</button>
       <div id="result" class="result">Esperando ejecución...</div>
       <div id="status" class="status"></div>
+
+      <div class="debug-panel">
+        <div class="debug-header">
+          🔍 LOGS EN TIEMPO REAL
+          <button id="clear-logs" type="button">Limpiar</button>
+        </div>
+        <div id="debug-logs" class="debug-logs">
+          <div class="log-entry log-info">
+            <span class="log-timestamp">[INIT]</span> Sistema listo. Haz clic en el botón para iniciar.
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="https://appx/web-view.min.js"></script>
