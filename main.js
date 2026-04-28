@@ -1,39 +1,22 @@
-const resultEl = document.getElementById("result");
-const statusEl = document.getElementById("status");
+function getAuthCodeFromUrl() {
+  const searchParams = new URLSearchParams(globalThis.location.search);
+  const hashParams = new URLSearchParams(globalThis.location.hash.replace(/^#/, ""));
 
-function updateStatus(message, type = "info") {
-  statusEl.textContent = message;
-  statusEl.className = type === "error" ? "status error" : "status success";
+  return (
+    searchParams.get("authCode") ||
+    searchParams.get("auth_code") ||
+    hashParams.get("authCode") ||
+    hashParams.get("auth_code")
+  );
 }
 
-function log(message) {
-  resultEl.textContent = message;
-}
+globalThis.addEventListener("load", () => {
+  const authCode = getAuthCodeFromUrl();
 
-function sendToMiniProgram(message) {
-  if (typeof my?.postMessage === "function") {
-    my.postMessage(message);
-    return true;
+  if (authCode) {
+    alert(`authCode: ${authCode}`);
+    return;
   }
 
-  updateStatus("my.postMessage no disponible", "error");
-  log("No se pudo enviar mensaje al MiniProgram");
-  return false;
-}
-
-function getAuthCode() {
-  updateStatus("? Requesting authorization...", "info");
-
-  const message = {
-    action: "getAuthCode",
-    scopes: ["auth_base"],
-    requestId: "req_" + Date.now(),
-    timestamp: new Date().toISOString(),
-  };
-
-  if (sendToMiniProgram(message)) {
-    log("Authorization request sent, waiting for response...", "info");
-  }
-}
-
-window.addEventListener("load", getAuthCode);
+  alert("No se encontró authCode en la URL");
+});
