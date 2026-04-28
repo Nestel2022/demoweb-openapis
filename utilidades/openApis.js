@@ -1,13 +1,66 @@
 import { getPrivateKey } from "./config.js";
 import { signGenerator } from "./generateSignature.js";
 
+function callMyAsync(method, params = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      const maybePromise = my.call(method, params, (response) => {
+        resolve(response);
+      });
+
+      if (maybePromise && typeof maybePromise.then === "function") {
+        maybePromise.then(resolve).catch(reject);
+      }
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function getAuthCodeAsync(options) {
+  return new Promise((resolve, reject) => {
+    try {
+      const maybePromise = my.getAuthCode({
+        ...options,
+        success: resolve,
+        fail: reject,
+      });
+
+      if (maybePromise && typeof maybePromise.then === "function") {
+        maybePromise.then(resolve).catch(reject);
+      }
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function requestLogsAsync(requestConfig) {
+  return new Promise((resolve, reject) => {
+    try {
+      const maybePromise = my.requestLogs({
+        ...requestConfig,
+        success: resolve,
+        fail: reject,
+      });
+
+      if (maybePromise && typeof maybePromise.then === "function") {
+        maybePromise.then(resolve).catch(reject);
+      }
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 async function getTokens() {
-  try {
-    const { result } = await my.call("MQFetchSelfcareParameters", {});
-    return result;
-  } catch (error) {
-    throw error;
+  const response = await callMyAsync("MQFetchSelfcareParameters", {});
+
+  if (!response) {
+    return {};
   }
+
+  return response.result || response.data || response;
 }
 
 function generateSignatureFormat(globaldata, requestGateway, requestTimeGateway, url) {
@@ -30,12 +83,12 @@ async function getConfigAccessToken(data) {
   let authCode;
 
   try {
-    const res = await my.getAuthCode({
+    const res = await getAuthCodeAsync({
       scopes: ["User_Customer_Info"],
     });
     authCode = res.authCode;
   } catch {
-    const fallbackRes = await my.getAuthCode({
+    const fallbackRes = await getAuthCodeAsync({
       scopes: ["User_Base_Info"],
     });
     authCode = fallbackRes.authCode;
@@ -79,7 +132,7 @@ async function getAccessToken(url, dataService) {
     headers: headersApply,
   };
 
-  return my.requestLogs(requestConfig);
+  return requestLogsAsync(requestConfig);
 }
 
 async function getConfigInquiryUserInfo(url) {
@@ -130,7 +183,7 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
     headers: headersApply,
   };
 
-  return my.requestLogs(requestConfig);
+  return requestLogsAsync(requestConfig);
 }
 
 export function getExtraData(headers) {
