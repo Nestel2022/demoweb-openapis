@@ -73,11 +73,27 @@ async function requestHttpAsync(requestConfig, debugSteps) {
     debugSteps.push(debugEntry);
   }
 
+  console.log("🔹 [requestHttpAsync] Iniciando fetch...");
+  console.log("   URL:", requestConfig.url);
+  console.log("   METHOD:", requestConfig.method || "POST");
+  console.log("   HEADERS:", headers);
+  console.log("   BODY:", requestConfig.data || {});
+
   try {
+    console.log("⏱️ [requestHttpAsync] Llamando fetch...");
+    const startTime = Date.now();
+    
     const response = await fetch(requestConfig.url, {
       method: requestConfig.method || "POST",
       headers,
       body: JSON.stringify(requestConfig.data || {}),
+    });
+
+    const elapsedTime = Date.now() - startTime;
+    console.log(`✅ [requestHttpAsync] fetch completó en ${elapsedTime}ms`);
+    console.log("   Status:", response.status, response.statusText);
+    console.log("   Response Headers:", {
+      contentType: response.headers.get("content-type"),
     });
 
     const contentType = response.headers.get("content-type") || "";
@@ -85,7 +101,10 @@ async function requestHttpAsync(requestConfig, debugSteps) {
       ? await response.json()
       : await response.text();
 
+    console.log("   Response Data:", data);
+
     if (!response.ok) {
+      console.error("❌ [requestHttpAsync] HTTP Error:", response.status);
       throw createHttpError(
         `HTTP ${response.status} ${response.statusText}: ${typeof data === "string" ? data : JSON.stringify(data)}`,
         debugSteps,
@@ -93,16 +112,26 @@ async function requestHttpAsync(requestConfig, debugSteps) {
       );
     }
 
+    console.log("✅ [requestHttpAsync] Respuesta exitosa");
     return {
       status: response.status,
       data,
     };
   } catch (error) {
+    const errorType = error?.name || "Unknown";
+    const errorMessage = error?.message || String(error);
+    
+    console.error(`❌ [requestHttpAsync] ERROR (${errorType}): ${errorMessage}`);
+    console.error("   Full error:", error);
+    console.error("   Stack:", error?.stack);
+
     if (error?.debugSteps) {
+      console.log("   (Error already has debugSteps, re-throwing)");
       throw error;
     }
 
-    throw createHttpError(error?.message || String(error), debugSteps, debugEntry, error);
+    const enhancedMessage = `FETCH ERROR: ${errorMessage}. Check browser console for network details.`;
+    throw createHttpError(enhancedMessage, debugSteps, debugEntry, error);
   }
 }
 
@@ -190,7 +219,11 @@ async function getConfigAccessToken(data) {
 }
 
 async function getAccessToken(url, dataService, debugSteps = []) {
+  console.log("🔹 [getAccessToken] Iniciando getAccessToken...");
+  console.log("   URL base:", url);
+  
   const data = await getConfigAccessToken(dataService);
+  
   const headersApply = {
     "Client-Id": data.clientId,
     "Request-Time": data.requestTimeGateway,
@@ -198,13 +231,18 @@ async function getAccessToken(url, dataService, debugSteps = []) {
     "Merchant-id": data.merchantId,
   };
 
+  const fullUrl = `${url}applyToken`;
+  console.log("   URL completa:", fullUrl);
+  console.log("   Signature:", data.signature.substring(0, 50) + "...");
+
   const requestConfig = {
-    url: `${url}applyToken`,
+    url: fullUrl,
     method: "POST",
     data: data.body,
     headers: headersApply,
   };
 
+  console.log("✅ [getAccessToken] Llamando requestHttpAsync...");
   const response = await requestHttpAsync(requestConfig, debugSteps);
 
   return response;
@@ -243,13 +281,23 @@ async function getConfigInquiryUserInfo(url, debugSteps = []) {
 
 export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) {
   const debugSteps = [];
+  
+  console.log("🔹 [getInquiryUserInfo] ========== INICIANDO FLUJO COMPLETO ==========");
+  console.log("   urlUsers:", urlUsers);
+  console.log("   urlApplyToken:", urlApplyToken);
+  
   try {
+    console.log("🔹 [getInquiryUserInfo] Obteniendo tokens de dispositivo...");
     const tokens = await getTokens();
+    console.log("   Tokens obtenidos:", tokens);
 
     headers["X-MC-DEVICE-ID"] = tokens.device_id || "";
     headers["X-MC-USER-AGENT"] = tokens.user_agent || "";
 
+    console.log("🔹 [getInquiryUserInfo] Configurando acceso a token...");
     const data = await getConfigInquiryUserInfo(urlApplyToken, debugSteps);
+    console.log("   Config obtenida, primer request realizado");
+    console.log("   Access Token recibido:", data.responseAccessToken.data.accessToken?.substring(0, 50) + "...");
 
     const headersApply = {
       "Client-Id": data.clientId,
@@ -259,15 +307,21 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
       ...headers,
     };
 
+    const fullUrl = `${urlUsers}inquiryUserBasicInfo`;
+    console.log("🔹 [getInquiryUserInfo] Realizando inquiry...");
+    console.log("   URL completa:", fullUrl);
+
     const requestConfig = {
-      url: `${urlUsers}inquiryUserBasicInfo`,
+      url: fullUrl,
       method: "POST",
       data: data.body,
       headers: headersApply,
     };
 
+    console.log("✅ [getInquiryUserInfo] Llamando requestHttpAsync para inquiryUserBasicInfo...");
     const inquiryResponse = await requestHttpAsync(requestConfig, debugSteps);
 
+    console.log("✅ [getInquiryUserInfo] ========== FLUJO COMPLETADO EXITOSAMENTE ==========");
     return {
       inquiryResponse,
       accessTokenResponse: {
@@ -277,6 +331,9 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
       debugSteps,
     };
   } catch (error) {
+    console.error("❌ [getInquiryUserInfo] ERROR EN FLUJO:", error?.message || String(error));
+    console.error("   debugSteps hasta el error:", debugSteps);
+    
     if (!error?.debugSteps) {
       error.debugSteps = [...debugSteps];
     }

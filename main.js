@@ -65,19 +65,28 @@ async function runInquiryUserInfo() {
     const { urlApplyToken, urlUsers } = getOpenApiUrls();
 
     setStatus(`Consultando OpenAPI en ${ENV}...`, "info");
-    setResult("Ejecutando flujo applyToken -> inquiryUserBasicInfo...");
+    setResult("⏳ Ejecutando flujo applyToken -> inquiryUserBasicInfo...\n\n📌 Abre la CONSOLA del navegador (F12 o Ctrl+Shift+I) para ver logs detallados.");
+
+    console.log("================================");
+    console.log("🚀 INICIANDO CONSULTA DE API");
+    console.log("================================");
 
     const response = await getInquiryUserInfo(urlUsers, urlApplyToken, {});
 
     setResult(formatTraceResponse(response));
-    setStatus("Consulta completada", "success");
-    alert("Consulta completada. Revisa el panel Resultado para ver requests, curl y responses.");
+    setStatus("✅ Consulta completada", "success");
+    alert("✅ Consulta completada. Revisa:\n1. Panel 'Resultado' → requests, curl y responses\n2. Consola F12 → logs detallados de cada paso");
   } catch (error) {
     const message = error?.message || String(error);
 
+    console.error("❌ ERROR FINAL:", message);
+    console.error("Full error object:", error);
+
     setResult(formatTraceError(error));
-    setStatus(message, "error");
-    alert(message);
+    setStatus("❌ " + message, "error");
+    alert("❌ Error: " + message + "\n\nAbre la CONSOLA (F12) para ver logs detallados.");
+  }
+}
   }
 }
 
