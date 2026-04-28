@@ -1,22 +1,42 @@
-function getAuthCodeFromUrl() {
-  const searchParams = new URLSearchParams(globalThis.location.search);
-  const hashParams = new URLSearchParams(globalThis.location.hash.replace(/^#/, ""));
+import { getOpenApiUrls, ENV } from "./utilidades/config.js";
+import { getInquiryUserInfo } from "./utilidades/openApis.js";
 
-  return (
-    searchParams.get("authCode") ||
-    searchParams.get("auth_code") ||
-    hashParams.get("authCode") ||
-    hashParams.get("auth_code")
-  );
+const resultEl = document.getElementById("result");
+const statusEl = document.getElementById("status");
+const runButton = document.getElementById("run-open-api");
+
+function setStatus(message, type = "info") {
+  statusEl.textContent = message;
+  statusEl.className = type === "error" ? "status error" : "status success";
 }
 
-globalThis.addEventListener("load", () => {
-  const authCode = getAuthCodeFromUrl();
+function setResult(value) {
+  resultEl.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
 
-  if (authCode) {
-    alert(`authCode: ${authCode}`);
-    return;
+async function runInquiryUserInfo() {
+  try {
+    const { urlApplyToken, urlUsers } = getOpenApiUrls();
+
+    setStatus(`Consultando OpenAPI en ${ENV}...`, "info");
+    setResult("Ejecutando flujo applyToken -> inquiryUserBasicInfo...");
+
+    const response = await getInquiryUserInfo(urlUsers, urlApplyToken, {});
+
+    setResult(response);
+    setStatus("Consulta completada", "success");
+    alert(JSON.stringify(response, null, 2));
+  } catch (error) {
+    const message = error?.message || String(error);
+
+    setResult(message);
+    setStatus(message, "error");
+    alert(message);
   }
+}
 
-  alert("No se encontró authCode en la URL");
+runButton?.addEventListener("click", runInquiryUserInfo);
+
+globalThis.addEventListener("load", () => {
+  setStatus(`Listo para consumir OpenAPI en ${ENV}`, "info");
 });

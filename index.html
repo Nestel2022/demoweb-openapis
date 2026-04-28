@@ -31,6 +31,16 @@
         font-size: 1.5rem;
       }
 
+      button {
+        margin-top: 12px;
+        padding: 10px 14px;
+        border: 0;
+        border-radius: 4px;
+        background: #0066cc;
+        color: white;
+        cursor: pointer;
+      }
+
       .result {
         margin-top: 20px;
         padding: 15px;
@@ -65,12 +75,13 @@
   </head>
   <body>
     <div class="container">
-      <h1>Mini App - Auth Code</h1>
-      <div id="result" class="result">Esperando...</div>
+      <h1>Mini App - OpenAPIs</h1>
+      <button id="run-open-api" type="button">Consumir inquiryUserBasicInfo</button>
+      <div id="result" class="result">Esperando ejecución...</div>
       <div id="status" class="status"></div>
     </div>
 
     <script src="https://appx/web-view.min.js"></script>
-    <script src="./main.js"></script>
+    <script type="module" src="./main.js"></script>
   </body>
 </html>
