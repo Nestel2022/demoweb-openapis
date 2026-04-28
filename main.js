@@ -25,11 +25,41 @@ function setStatus(message, type = "") {
   status.className = type ? `status ${type}` : "status";
 }
 
-function isMiniProgramWebViewContext() {
-  const hasMySdk = Boolean(globalThis?.my || globalThis?.window?.my);
-  const hasMiniProgramBridge = globalThis.AlipayJSBridge !== undefined;
+function hasMyApi() {
+  return Boolean(globalThis?.my || globalThis?.window?.my);
+}
 
-  return hasMySdk || hasMiniProgramBridge;
+function getMiniProgramEnv() {
+  return new Promise((resolve, reject) => {
+    if (!hasMyApi() || typeof my.getEnv !== "function") {
+      reject(new Error("my.getEnv no está disponible en este contexto."));
+      return;
+    }
+
+    try {
+      my.getEnv((res) => resolve(res || {}));
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function setupWebViewMessaging() {
+  if (!hasMyApi()) {
+    return;
+  }
+
+  my.onMessage = function onMessageFromMiniProgram(e) {
+    const payload = formatJson(e);
+
+    console.log("Mensaje recibido desde Mini Program:", e);
+    authOutput.textContent = `Mensaje recibido desde Mini Program:\n${payload}`;
+    setStatus("Mensaje recibido desde Mini Program.", "ok");
+  };
+
+  if (typeof my.postMessage === "function") {
+    my.postMessage({ name: "web-view cargado" });
+  }
 }
 
 function showErrorOnScreen(message, detail = "") {
@@ -129,24 +159,43 @@ globalThis.addEventListener("unhandledrejection", (event) => {
 });
 
 sdkScript?.addEventListener("error", () => {
-  const msg = "No se pudo cargar el SDK de Mini App (web-view.min.js).";
+  const msg = "No se pudo cargar web-view.min.js.";
 
   showErrorOnScreen(msg, "Verifica conectividad/DNS y que el host appx sea accesible desde este entorno.");
 });
 
 window.addEventListener("load", () => {
-  if (!isMiniProgramWebViewContext()) {
-    showErrorOnScreen(
-      "Este flujo solo funciona en MiniProgram Studio (web-view).",
-      "Abrelo dentro del contenedor web-view del mini programa. En navegador normal, el host appx puede no resolver y el SDK no se cargara."
-    );
-    return;
-  }
+  void (async () => {
+    if (globalThis.__sdkLoadError) {
+      showErrorOnScreen(globalThis.__sdkLoadError, "El SDK no se cargó. No se puede solicitar authCode.");
+      return;
+    }
 
-  if (globalThis.__sdkLoadError) {
-    showErrorOnScreen(globalThis.__sdkLoadError, "El SDK no se cargó. No se puede solicitar authCode.");
-    return;
-  }
+    if (!hasMyApi()) {
+      showErrorOnScreen(
+        "API my no disponible.",
+        "Esta funcionalidad corre en MiniProgram Studio WebView. Verifica que el contenedor cargue web-view.min.js."
+      );
+      return;
+    }
 
-  void onObtenerAuthCode();
+    setupWebViewMessaging();
+
+    try {
+      const env = await getMiniProgramEnv();
+
+      if (!env?.miniprogram) {
+        showErrorOnScreen(
+          "No estás en entorno Mini Program.",
+          `Resultado de my.getEnv: ${formatJson(env)}`
+        );
+        return;
+      }
+
+      console.log("Entorno Mini Program detectado:", env);
+      await onObtenerAuthCode();
+    } catch (error) {
+      showErrorOnScreen("No se pudo validar entorno con my.getEnv.", extractErrorDetail(error));
+    }
+  })();
 });

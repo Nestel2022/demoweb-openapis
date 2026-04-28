@@ -2,20 +2,16 @@ import { getPrivateKey } from "./config.js";
 import { signGenerator } from "./generateSignature.js";
 import { obtenerAuthCodeConFallback } from "./authCode.js";
 
-function getMySdk() {
-  const sdk = globalThis?.my || globalThis?.window?.my;
-
-  if (!sdk) {
-    throw new Error("SDK my no disponible. Verifica web-view.min.js");
+function validarMyDisponible() {
+  if (!globalThis?.my) {
+    throw new Error("API my no disponible. Verifica web-view.min.js en el WebView.");
   }
-
-  return sdk;
 }
 
 export async function getTokens() {
   try {
-    const sdk = getMySdk();
-    const { result } = await sdk.call("MQFetchSelfcareParameters", {});
+    validarMyDisponible();
+    const { result } = await my.call("MQFetchSelfcareParameters", {});
     return result;
   } catch (error) {
     return error;
@@ -40,9 +36,9 @@ export async function getConfigAccessToken(data) {
   const { clientId, merchantId } = data;
 
   try {
-    const sdk = getMySdk();
+    validarMyDisponible();
     const authCode = await obtenerAuthCodeConFallback();
-    const { appId } = sdk.getAppIdSync();
+    const { appId } = my.getAppIdSync();
 
     const body = {
       appId,
@@ -70,7 +66,7 @@ export async function getConfigAccessToken(data) {
 
 export async function getAccessToken(url, dataService) {
   try {
-    const sdk = getMySdk();
+    validarMyDisponible();
     const data = await getConfigAccessToken(dataService);
 
     const headersApply = {
@@ -87,7 +83,7 @@ export async function getAccessToken(url, dataService) {
       headers: headersApply
     };
 
-    return await sdk.requestLogs(requestConfig);
+    return await my.requestLogs(requestConfig);
   } catch (error) {
     return error;
   }
@@ -95,11 +91,11 @@ export async function getAccessToken(url, dataService) {
 
 export async function getConfigInquiryUserInfo(url) {
   try {
-    const sdk = getMySdk();
+    validarMyDisponible();
     const data = getPrivateKey();
     const responseAccessToken = await getAccessToken(url, data);
     const { clientId, merchantId } = data;
-    const { appId } = sdk.getAppIdSync();
+    const { appId } = my.getAppIdSync();
 
     const body = {
       appId,
@@ -126,7 +122,7 @@ export async function getConfigInquiryUserInfo(url) {
 
 export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) {
   try {
-    const sdk = getMySdk();
+    validarMyDisponible();
     const tokens = await getTokens();
 
     headers["X-MC-DEVICE-ID"] = tokens?.device_id || "";
@@ -148,7 +144,7 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
       headers: headersApply
     };
 
-    return await sdk.requestLogs(requestConfig);
+    return await my.requestLogs(requestConfig);
   } catch (error) {
     return error;
   }

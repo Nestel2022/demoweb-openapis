@@ -1,26 +1,22 @@
-function obtenerMyDesdeWebView() {
-  const sdk = globalThis?.my || globalThis?.window?.my;
-
-  if (!sdk || typeof sdk.getAuthCode !== "function") {
+function validarMyGetAuthCode() {
+  if (!globalThis?.my || typeof my.getAuthCode !== "function") {
     throw new Error(
-      "SDK no disponible. Esta funcionalidad corre dentro de MiniProgram Studio (web-view). Verifica la carga de <script src=\"https://appx/web-view.min.js\"></script> en ese contexto."
+      "my.getAuthCode no disponible. Esta funcionalidad corre dentro de MiniProgram Studio (web-view). Verifica la carga de <script src=\"https://appx/web-view.min.js\"></script> en ese contexto."
     );
   }
-
-  return sdk;
 }
 
 export async function obtenerAuthCodeConFallback() {
-  const sdk = obtenerMyDesdeWebView();
+  validarMyGetAuthCode();
 
   try {
-    const res = await sdk.getAuthCode({
+    const res = await my.getAuthCode({
       scopes: ["User_Customer_Info"]
     });
 
     return res.authCode;
   } catch {
-    const fallbackRes = await sdk.getAuthCode({
+    const fallbackRes = await my.getAuthCode({
       scopes: ["User_Base_Info"]
     });
 
