@@ -1,58 +1,39 @@
 const resultEl = document.getElementById("result");
 const statusEl = document.getElementById("status");
 
-function showResult(text, type = "info") {
-  resultEl.textContent = text;
-  statusEl.textContent = text;
+function updateStatus(message, type = "info") {
+  statusEl.textContent = message;
   statusEl.className = type === "error" ? "status error" : "status success";
 }
 
-function showError(error) {
-  const msg = error?.message || String(error);
-  showResult(msg, "error");
-  console.error(msg, error);
+function log(message) {
+  resultEl.textContent = message;
 }
 
-async function getAuthCode() {
-  try {
-    showResult("Obteniendo authCode...");
+function sendToMiniProgram(message) {
+  if (typeof my?.postMessage === "function") {
+    my.postMessage(message);
+    return true;
+  }
 
-    if (!my) {
-      const errorMsg = "API my no disponible. Verifica que estés en MiniProgram WebView.";
-      showResult(errorMsg, "error");
-      alert(errorMsg);
-      throw new Error(errorMsg);
-    }
+  updateStatus("my.postMessage no disponible", "error");
+  log("No se pudo enviar mensaje al MiniProgram");
+  return false;
+}
 
-    // Debug: log what's available in my
-    const availableMethods = Object.keys(my);
-    alert(`Objeto my disponible:\n${JSON.stringify(my, null, 2)}`);
-    alert(`Métodos en my:\n${availableMethods.join("\n")}`);
-    
-    alert(`Objeto my encontrado\n\nMétodos disponibles:\n${availableMethods.join("\n")}`);
+function getAuthCode() {
+  updateStatus("? Requesting authorization...", "info");
 
-    if (typeof my.getAuthCode !== "function") {
-      const methodsList = availableMethods.join("\n");
-      const errorMsg = `my.getAuthCode NO ES UNA FUNCIÓN\n\nMétodos disponibles en my:\n${methodsList}`;
-      showResult(errorMsg, "error");
-      alert(errorMsg);
-      throw new Error(errorMsg);
-    }
+  const message = {
+    action: "getAuthCode",
+    scopes: ["auth_base"],
+    requestId: "req_" + Date.now(),
+    timestamp: new Date().toISOString(),
+  };
 
-    const res = await my.getAuthCode({
-      scopes: ["User_Customer_Info"]
-    });
-
-    alert(`Respuesta de my.getAuthCode:\n${JSON.stringify(res, null, 2)}`);
-    showResult(`AuthCode: ${res.authCode}`, "success");
-    alert(`AuthCode obtenido exitosamente:\n${res.authCode}`);
-    console.log("AuthCode:", res.authCode);
-  } catch (error) {
-    alert(`Error capturado: ${error?.message || String(error)}`);
-    showError(error);
+  if (sendToMiniProgram(message)) {
+    log("Authorization request sent, waiting for response...", "info");
   }
 }
 
-window.addEventListener("load", () => {
-  getAuthCode();
-});
+window.addEventListener("load", getAuthCode);
