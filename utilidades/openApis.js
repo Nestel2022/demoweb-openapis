@@ -1,6 +1,25 @@
 import { getPrivateKey } from "./config.js";
 import { signGenerator } from "./generateSignature.js";
 
+function escapeShellValue(value) {
+  return String(value).replaceAll('"', String.raw`\"`);
+}
+
+function buildCurlCommand(requestConfig, headers) {
+  const method = requestConfig.method || "POST";
+  const headerParts = Object.entries(headers || {}).map(
+    ([key, value]) => `-H "${escapeShellValue(key)}: ${escapeShellValue(value)}"`
+  );
+  const data = JSON.stringify(requestConfig.data || {});
+
+  return [
+    `curl -X ${method}`,
+    `"${escapeShellValue(requestConfig.url)}"`,
+    ...headerParts,
+    `--data-raw '${data}'`,
+  ].join(" ");
+}
+
 function callMyAsync(method, params = {}) {
   return new Promise((resolve, reject) => {
     try {
@@ -17,13 +36,25 @@ function callMyAsync(method, params = {}) {
   });
 }
 
-async function requestHttpAsync(requestConfig) {
+async function requestHttpAsync(requestConfig, debugSteps) {
   const headers = {
     "Content-Type": "application/json",
   };
 
   if (requestConfig.headers) {
     Object.assign(headers, requestConfig.headers);
+  }
+
+  const debugEntry = {
+    url: requestConfig.url,
+    method: requestConfig.method || "POST",
+    headers,
+    body: requestConfig.data || {},
+    curl: buildCurlCommand(requestConfig, headers),
+  };
+
+  if (Array.isArray(debugSteps)) {
+    debugSteps.push(debugEntry);
   }
 
   const response = await fetch(requestConfig.url, {
@@ -132,7 +163,7 @@ async function getConfigAccessToken(data) {
   };
 }
 
-async function getAccessToken(url, dataService) {
+async function getAccessToken(url, dataService, debugSteps = []) {
   const data = await getConfigAccessToken(dataService);
   const headersApply = {
     "Client-Id": data.clientId,
@@ -148,12 +179,14 @@ async function getAccessToken(url, dataService) {
     headers: headersApply,
   };
 
-  return requestHttpAsync(requestConfig);
+  const response = await requestHttpAsync(requestConfig, debugSteps);
+
+  return response;
 }
 
-async function getConfigInquiryUserInfo(url) {
+async function getConfigInquiryUserInfo(url, debugSteps = []) {
   const data = getPrivateKey();
-  const responseAccessToken = await getAccessToken(url, data);
+  const responseAccessToken = await getAccessToken(url, data, debugSteps);
   const { clientId, merchantId } = data;
   const appId = getAppIdFromUrl();
 
@@ -178,16 +211,19 @@ async function getConfigInquiryUserInfo(url) {
     signature,
     requestTimeGateway,
     body,
+    responseAccessToken,
   };
 }
 
 export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) {
+  const debugSteps = [];
   const tokens = await getTokens();
 
   headers["X-MC-DEVICE-ID"] = tokens.device_id || "";
   headers["X-MC-USER-AGENT"] = tokens.user_agent || "";
 
-  const data = await getConfigInquiryUserInfo(urlApplyToken);
+  const data = await getConfigInquiryUserInfo(urlApplyToken, debugSteps);
+
   const headersApply = {
     "Client-Id": data.clientId,
     "Request-Time": data.requestTimeGateway,
@@ -203,7 +239,16 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
     headers: headersApply,
   };
 
-  return requestHttpAsync(requestConfig);
+  const inquiryResponse = await requestHttpAsync(requestConfig, debugSteps);
+
+  return {
+    inquiryResponse,
+    accessTokenResponse: {
+      status: data.responseAccessToken.status,
+      data: data.responseAccessToken.data,
+    },
+    debugSteps,
+  };
 }
 
 export function getExtraData(headers) {
