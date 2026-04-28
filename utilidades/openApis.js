@@ -17,22 +17,36 @@ function callMyAsync(method, params = {}) {
   });
 }
 
-function requestLogsAsync(requestConfig) {
-  return new Promise((resolve, reject) => {
-    try {
-      const maybePromise = my.requestLogs({
-        ...requestConfig,
-        success: resolve,
-        fail: reject,
-      });
+async function requestHttpAsync(requestConfig) {
+  const headers = {
+    "Content-Type": "application/json",
+  };
 
-      if (maybePromise && typeof maybePromise.then === "function") {
-        maybePromise.then(resolve).catch(reject);
-      }
-    } catch (error) {
-      reject(error);
-    }
+  if (requestConfig.headers) {
+    Object.assign(headers, requestConfig.headers);
+  }
+
+  const response = await fetch(requestConfig.url, {
+    method: requestConfig.method || "POST",
+    headers,
+    body: JSON.stringify(requestConfig.data || {}),
   });
+
+  const contentType = response.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `HTTP ${response.status} ${response.statusText}: ${typeof data === "string" ? data : JSON.stringify(data)}`
+    );
+  }
+
+  return {
+    status: response.status,
+    data,
+  };
 }
 
 async function getTokens() {
@@ -134,7 +148,7 @@ async function getAccessToken(url, dataService) {
     headers: headersApply,
   };
 
-  return requestLogsAsync(requestConfig);
+  return requestHttpAsync(requestConfig);
 }
 
 async function getConfigInquiryUserInfo(url) {
@@ -189,7 +203,7 @@ export async function getInquiryUserInfo(urlUsers, urlApplyToken, headers = {}) 
     headers: headersApply,
   };
 
-  return requestLogsAsync(requestConfig);
+  return requestHttpAsync(requestConfig);
 }
 
 export function getExtraData(headers) {
