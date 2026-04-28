@@ -265,7 +265,13 @@
       </section>
     </main>
 
-    <script type="text/javascript" src="https://appx/web-view.min.js"></script>
+    <script
+      id="sdk-webview"
+      type="text/javascript"
+      src="https://appx/web-view.min.js"
+      onload="window.__sdkLoaded = true"
+      onerror="window.__sdkLoadError = 'No se pudo cargar el SDK web-view.min.js desde https://appx/web-view.min.js'"
+    ></script>
     <script type="module" src="./main.js"></script>
   </body>
 </html>

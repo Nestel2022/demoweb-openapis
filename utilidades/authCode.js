@@ -3,7 +3,7 @@ function obtenerMyDesdeWebView() {
 
   if (!sdk || typeof sdk.getAuthCode !== "function") {
     throw new Error(
-      "SDK no disponible. Asegurate de cargar <script src=\"https://appx/web-view.min.js\"></script> antes de usar esta utilidad."
+      "SDK no disponible. Esta funcionalidad corre dentro de MiniProgram Studio (web-view). Verifica la carga de <script src=\"https://appx/web-view.min.js\"></script> en ese contexto."
     );
   }
 
