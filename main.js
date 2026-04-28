@@ -166,6 +166,9 @@ sdkScript?.addEventListener("error", () => {
 
 window.addEventListener("load", () => {
   void (async () => {
+    // Siempre intenta obtener authCode al cargar/recargar la pagina.
+    await onObtenerAuthCode();
+
     if (globalThis.__sdkLoadError) {
       showErrorOnScreen(globalThis.__sdkLoadError, "El SDK no se cargó. No se puede solicitar authCode.");
       return;
@@ -198,4 +201,11 @@ window.addEventListener("load", () => {
       showErrorOnScreen("No se pudo validar entorno con my.getEnv.", extractErrorDetail(error));
     }
   })();
+});
+
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) {
+    // Reintenta authCode al restaurar la pagina desde cache del navegador.
+    void onObtenerAuthCode();
+  }
 });
