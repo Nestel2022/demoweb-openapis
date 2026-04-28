@@ -57,6 +57,18 @@ function getAuthCodeFromUrl() {
   );
 }
 
+function getAppIdFromUrl() {
+  const searchParams = new URLSearchParams(globalThis.location.search);
+  const hashParams = new URLSearchParams(globalThis.location.hash.replace(/^#/, ""));
+
+  return (
+    searchParams.get("appId") ||
+    searchParams.get("app_id") ||
+    hashParams.get("appId") ||
+    hashParams.get("app_id")
+  );
+}
+
 function generateSignatureFormat(globaldata, requestGateway, requestTimeGateway, url) {
   return {
     HTTP_METHOD: "POST",
@@ -75,12 +87,16 @@ async function getConfigAccessToken(data) {
   const { clientId, merchantId } = data;
 
   const authCode = getAuthCodeFromUrl();
+  const appId = getAppIdFromUrl();
 
   if (!authCode) {
     throw new Error("No se encontró authCode en la URL.");
   }
 
-  const { appId } = my.getAppIdSync();
+  if (!appId) {
+    throw new Error("No se encontró appId en la URL.");
+  }
+
   const body = {
     appId,
     grantType: "AUTHORIZATION_CODE",
@@ -125,7 +141,11 @@ async function getConfigInquiryUserInfo(url) {
   const data = getPrivateKey();
   const responseAccessToken = await getAccessToken(url, data);
   const { clientId, merchantId } = data;
-  const { appId } = my.getAppIdSync();
+  const appId = getAppIdFromUrl();
+
+  if (!appId) {
+    throw new Error("No se encontró appId en la URL.");
+  }
 
   const body = {
     appId,
