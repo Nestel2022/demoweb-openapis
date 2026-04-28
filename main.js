@@ -87,8 +87,6 @@ async function runInquiryUserInfo() {
     alert("❌ Error: " + message + "\n\nAbre la CONSOLA (F12) para ver logs detallados.");
   }
 }
-  }
-}
 
 runButton?.addEventListener("click", runInquiryUserInfo);
 
