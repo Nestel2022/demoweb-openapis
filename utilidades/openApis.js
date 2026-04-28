@@ -17,24 +17,6 @@ function callMyAsync(method, params = {}) {
   });
 }
 
-function getAuthCodeAsync(options) {
-  return new Promise((resolve, reject) => {
-    try {
-      const maybePromise = my.getAuthCode({
-        ...options,
-        success: resolve,
-        fail: reject,
-      });
-
-      if (maybePromise && typeof maybePromise.then === "function") {
-        maybePromise.then(resolve).catch(reject);
-      }
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
 function requestLogsAsync(requestConfig) {
   return new Promise((resolve, reject) => {
     try {
@@ -63,6 +45,18 @@ async function getTokens() {
   return response.result || response.data || response;
 }
 
+function getAuthCodeFromUrl() {
+  const searchParams = new URLSearchParams(globalThis.location.search);
+  const hashParams = new URLSearchParams(globalThis.location.hash.replace(/^#/, ""));
+
+  return (
+    searchParams.get("authCode") ||
+    searchParams.get("auth_code") ||
+    hashParams.get("authCode") ||
+    hashParams.get("auth_code")
+  );
+}
+
 function generateSignatureFormat(globaldata, requestGateway, requestTimeGateway, url) {
   return {
     HTTP_METHOD: "POST",
@@ -80,18 +74,10 @@ function generateSignatureFormat(globaldata, requestGateway, requestTimeGateway,
 async function getConfigAccessToken(data) {
   const { clientId, merchantId } = data;
 
-  let authCode;
+  const authCode = getAuthCodeFromUrl();
 
-  try {
-    const res = await getAuthCodeAsync({
-      scopes: ["User_Customer_Info"],
-    });
-    authCode = res.authCode;
-  } catch {
-    const fallbackRes = await getAuthCodeAsync({
-      scopes: ["User_Base_Info"],
-    });
-    authCode = fallbackRes.authCode;
+  if (!authCode) {
+    throw new Error("No se encontró authCode en la URL.");
   }
 
   const { appId } = my.getAppIdSync();
