@@ -1,6 +1,6 @@
 import { getPrivateKey } from "./config.js";
 import { signGenerator } from "./generateSignature.js";
-import { requestHybrid, getTransportInfo } from "./httpTransport.js";
+import { requestWithAxios } from "./axiosTransport.js";
 
 function escapeShellValue(value) {
   return String(value).replaceAll('"', String.raw`\"`);
@@ -62,15 +62,15 @@ async function requestHttpAsync(requestConfig, debugSteps) {
     Object.assign(headers, requestConfig.headers);
   }
 
-  console.log("🔹 [requestHttpAsync] Iniciando transporte híbrido...");
+  console.log("🔹 [requestHttpAsync] Iniciando transporte con Axios...");
   console.log("   URL:", requestConfig.url);
   console.log("   METHOD:", requestConfig.method || "POST");
 
   try {
     const startTime = Date.now();
-    
-    // Usar el transporte híbrido que intenta múltiples métodos
-    const response = await requestHybrid(
+
+    // Usar Axios como transporte principal
+    const response = await requestWithAxios(
       {
         url: requestConfig.url,
         method: requestConfig.method || "POST",

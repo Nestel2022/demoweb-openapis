@@ -1,6 +1,6 @@
 import { getOpenApiUrls, ENV } from "./utilidades/config.js";
 import { getInquiryUserInfo } from "./utilidades/openApis.js";
-import { getTransportInfo } from "./utilidades/httpTransport.js";
+import { getAxiosInfo, isAxiosAvailable } from "./utilidades/axiosTransport.js";
 
 const resultEl = document.getElementById("result");
 const statusEl = document.getElementById("status");
@@ -198,18 +198,20 @@ async function runInquiryUserInfo() {
 runButton?.addEventListener("click", runInquiryUserInfo);
 
 globalThis.addEventListener("load", () => {
-  const transportInfo = getTransportInfo();
-  
+  const axiosAvailable = isAxiosAvailable();
+  const axiosInfo = getAxiosInfo();
+
   LogSystem.addLog(
     `✅ Sistema listo en ambiente: ${ENV}`,
     "success",
     {
-      transportes: transportInfo.available,
-      myApiDisponible: transportInfo.myHttpRequest,
-      xmlHttpRequestDisponible: transportInfo.XMLHttpRequest,
-      fetchDisponible: transportInfo.fetch,
+      axiosDisponible: axiosAvailable,
+      axiosVersion: axiosInfo.version,
+      mensaje: axiosAvailable
+        ? "✅ Usando Axios para consumir APIs"
+        : "⚠️ Axios no disponible, usa fallback",
     }
   );
-  
+
   setStatus(`Listo para consumir OpenAPI en ${ENV}`, "info");
 });
